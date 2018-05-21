@@ -5,6 +5,7 @@
     const LOGIN = 'login';
     const LOGOUT = 'logout';
     const USERNAME = 'username';
+    const USERID = 'userId';
     const PASSWORD = 'password';
     const CONFIRM = 'confirm';
     const IS_LOGGED_IN = 'isLoggedIn';
@@ -13,6 +14,7 @@
 
     private $database;
     private $username;
+    private $userId;
     private $isLoggedIn;
 
     public function __construct($database) {
@@ -53,6 +55,9 @@
     public function getUsername() {
       return $this->username;
     }
+    public function getUserId() {
+      return $this->userId;
+    }
 
     public function isLoggedIn() {
       if ($this->isLoggedIn === NULL) {
@@ -71,9 +76,12 @@
         $this->password = sha1($this->database->real_escape_string($_POST[self::PASSWORD]));
 
         if ($row = $this->verifyPassword()) {
+          $this->userId = $this->getUserIdFromDatabase();
+
           session_regenerate_id(true);
           $_SESSION[self::SESSION_ID] = session_id();
           $_SESSION[self::USERNAME] = $this->username;
+          $_SESSION[self::USERID] = $this->userId;
           $_SESSION[self::IS_LOGGED_IN] = true;
           $this->isLoggedIn = true;
 
@@ -83,6 +91,14 @@
 
         };
       };
+    }
+
+    private function getUserIdFromDatabase() {
+      $query  = 'SELECT ' . self::USERID . ' FROM ' . self::USER_TABLE
+          . ' WHERE ' . self::USERNAME . ' = "' . $this->username . '"'
+          . ' AND ' . self::PASSWORD . ' = "' . $this->password . '"';
+
+      return ($this->database->query($query)->fetch_object()->userId);
     }
 
     private function verifyPassword() {
@@ -122,6 +138,7 @@
               session_regenerate_id(true);
               $_SESSION[self::SESSION_ID] = session_id();
               $_SESSION[self::USERNAME] = $username;
+              $_SESSION[self::USERID] = $userId;
               $_SESSION[self::IS_LOGGED_IN] = true;
               $this->isLoggedIn = true;
             }
