@@ -4,8 +4,7 @@
 
   require_once('classes/class.taskStore.php');
 
-  $tasks = new TaskStore($database, $_SESSION['userId']);
-
+  $taskStore = new TaskStore($database, $_SESSION['userId']);
 ?>
 <!DOCTYPE html>
 <html>
@@ -20,16 +19,29 @@
   <header><span>Angemeldet als {{Login}} (<a href="./login.html"><span>logout</span></a>)</span></header>
   <h2>Aufgabenliste</h2>
   <ul id="todolist">
-    <li>
-      <a href="#" class="done"></a>
-      <span>Aufgabentext 1</span>
-      <a href="#" class="delete">löschen</a>
-    </li>
-    <li>
-      <a href="#" class="done checked"></a>
-      <span>Aufgabentext 2</span>
-      <a href="#" class="delete">löschen</a>
-    </li>
+    <?php
+      $tasks = $taskStore->getTasks();
+
+      for ($i = 0; $i < count($tasks); $i++) {
+        $taskId = $tasks[$i]->getId();
+        $taskDone = $tasks[$i]->getDone();
+        $taskDoneCssClass = '';
+        $taskText = $tasks[$i]->getText();
+
+        if ($taskDone == 1) {
+          $taskDoneCssClass = 'checked';
+          $taskDone = 0;
+        } else {
+          $taskDone = 1;
+        }
+
+        echo "<li>
+                <a href='?done={$taskDone}&id={$taskId}'class='done {$taskDoneCssClass}'></a>
+                <span>{$taskText}</span>
+                <a href='?delete={$taskId}' class='delete'>löschen</a>
+              </li>";
+      }
+    ?>
   </ul>
   <div class="spacer"></div>
   <form id="add-todo" action="<?php echo $_SERVER['PHP_SELF']; ?>" method="POST">

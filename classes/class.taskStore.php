@@ -3,17 +3,19 @@
 
   class TaskStore {
     const TASKS_STORE = 'ea3_todo';
-    const TASK_ID = 'taskId';
+    const TASK_ID = 'id';
     const OWNER = 'owner';
     const DONE = 'done';
     const TEXT = 'text';
 
     private $database;
     private $userId;
-    private $tasks = [];
 
     public function __construct($database, $userId) {
-      $POST_TEXT = isset($_POST['text']) ? $_POST['text'] : NULL;
+      $postText = isset($_POST['text']) ? $_POST['text'] : NULL;
+      $getDelete = isset($_GET['delete']) ? $_GET['delete'] : NULL;
+      $getDone = isset($_GET['done']) ? $_GET['done'] : NULL;
+      $getId = isset($_GET['id']) ? $_GET['id'] : NULL;
 
       $this->database = $database;
       $this->userId = $userId;
@@ -28,38 +30,71 @@
        */
       $isPostMethod = $_SERVER['REQUEST_METHOD'] === 'POST';
       $isGetMethod = $_SERVER['REQUEST_METHOD'] === 'GET';
-      $isPostText = $isPostMethod && isset($POST_TEXT) && !empty($POST_TEXT);
-      $isGetDelete = $isGetMethod && isset($GET_DELETE);
-      $isGetDone = $isGetMethod && isset($GET_DONE);
+      $isPostText = $isPostMethod && isset($postText) && !empty($postText);
+      $isGetDelete = $isGetMethod && isset($getDelete);
+      $isGetDone = $isGetMethod && isset($getDone);
+      $isGetId = $isGetMethod && isset($getId);
 
       if ($isPostText) {
-        $newTask = $this->createTask($POST_TEXT);
+        $newTask = $this->createTask(null, $this->userId, 0, $postText);
 
         $this->addTask($newTask);
+
+      } elseif ($isGetDelete) {
+        $this->deleteTask($getDelete);
+      
+      } elseif ($isGetDone && $isGetId) {
+        $this->updateTask($getDone, $getId);
       }
     }
 
+    public function getTasks() {
+      return $this->getTasksStore();
+    }
     
-    private function createTask($text) {
-      return new Task(null, 0, $text);
+    private function createTask($id, $owner, $done, $text) {
+      return new Task($id, $owner, $done, $text);
     }
 
     private function addTask($task) {
       $query = 'INSERT INTO ' . self::TASKS_STORE .
         ' (' . self::TASK_ID . ', ' . self::OWNER . ', ' . self::DONE . ', '  . self::TEXT . ') ' .
-        ' VALUES ("' . $task->getId() . '", "' . $this->userId . '", "' . $task->getDone() . '", "' . $task->getText() . '")';
+        ' VALUES ("' . $task->getId() . '", "' . $task->getOwner() . '", "' . $task->getDone() . '", "' . $task->getText() . '")';
 
-      $result = $this->database->query($query);
+      $this->database->query($query);
+    }
+
+    private function deleteTask($taskId) {
+      $query = 'DELETE FROM ' . self::TASKS_STORE .
+        ' WHERE ' . self::TASK_ID . ' = ' . $taskId;
+
+      $this->database->query($query);
+    }
+
+    private function updateTask($done, $taskId) {
+      $query = 'UPDATE ' . self::TASKS_STORE .
+        ' SET ' . self::DONE . ' = ' . $done .
+        ' WHERE ' . self::TASK_ID . ' = ' . $taskId;
+
+      $this->database->query($query);
     }
 
     private function getTasksStore() {
-      $query = 'SELECT ' . self::OWNER . ', ' . self::DONE . ', ' . self::TEXT . 
+      $query = 'SELECT ' . self::TASK_ID . ', ' . self::OWNER . ', ' . self::DONE . ', ' . self::TEXT . 
         ' FROM ' . self::TASKS_STORE . 
         ' WHERE ' . self::OWNER . ' = "' . $this->userId . '"';
 
       $result = $this->database->query($query);
 
-      return $result->fetch_object();
+      $allTasks = [];
+
+      while ($task = $result->fetch_object()) {
+        $newTask = $this->createTask($task->id, $task->owner, $task->done, $task->text);
+
+        array_push($allTasks, $newTask);
+      }
+
+      return $allTasks;
     }
   }
 

@@ -2,11 +2,13 @@
 
   class Task {
     private $id;
+    private $owner;
     private $done;
     private $text;
 
-    public function __construct($id, $done, $text) {
+    public function __construct($id, $owner, $done, $text) {
       $this->id = $id;
+      $this->owner = $owner;
       $this->done = $done;
       $this->text = $this->validateInput($text);
     }
@@ -28,6 +30,10 @@
 
     public function getId() {
       return $this->id;
+    }
+
+    public function getOwner() {
+      return $this->owner;
     }
 
     public function getDone() {
