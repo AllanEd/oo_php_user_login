@@ -34,6 +34,7 @@ h2 {
 #todolist li .done {
     display: inline-block;
     width: 24px;
+    min-width: 24px;
     height: 24px;
     border: 1px solid black;
     background-color: white;
@@ -46,6 +47,7 @@ h2 {
 #todolist li span {
     padding: 0 7px;
     flex-grow: 1;
+    word-break: break-all;
 }
 #todolist a,
 #todolist a:link,
