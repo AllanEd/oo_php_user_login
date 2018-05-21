@@ -12,7 +12,7 @@
   <div id="login">
     <p>
       Melden Sie sich mit ihren Login-Daten ein oder erstelllen Sie 
-      <a href="./registrieren.php">hier</a> einen neuen Account.
+      <a href="?registrieren">hier</a> einen neuen Account.
     </p>
     <form id="login-form" action="<?php echo $_SERVER['PHP_SELF']; ?>" method="POST">
       <input type="text" placeholder="Login" name="username">

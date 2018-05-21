@@ -78,33 +78,30 @@
         if ($row = $this->verifyPassword()) {
           $this->userId = $this->getUserIdFromDatabase();
 
-          session_regenerate_id(true);
-          $_SESSION[self::SESSION_ID] = session_id();
-          $_SESSION[self::USERNAME] = $this->username;
-          $_SESSION[self::USERID] = $this->userId;
-          $_SESSION[self::IS_LOGGED_IN] = true;
-          $this->isLoggedIn = true;
+          $this->logInUser($this->username, $this->userId);
 
           // avoid resending form on refresh
           header('Location: ' . $_SERVER['REQUEST_URI']);
           exit();
-
         };
       };
     }
 
     private function getUserIdFromDatabase() {
-      $query  = 'SELECT ' . self::USERID . ' FROM ' . self::USER_TABLE
-          . ' WHERE ' . self::USERNAME . ' = "' . $this->username . '"'
-          . ' AND ' . self::PASSWORD . ' = "' . $this->password . '"';
+      $query  = '
+        SELECT ' . self::USERID . ' FROM ' . self::USER_TABLE . ' 
+        WHERE ' . self::USERNAME . ' = "' . $this->username . '"' . ' 
+        AND ' . self::PASSWORD . ' = "' . $this->password . '"';
 
       return ($this->database->query($query)->fetch_object()->userId);
     }
 
     private function verifyPassword() {
-      $query  = 'SELECT * FROM ' . self::USER_TABLE
-          . ' WHERE ' . self::USERNAME . ' = "' . $this->username . '"'
-          . ' AND ' . self::PASSWORD . ' = "' . $this->password . '"';
+      $query  = '
+        SELECT * 
+        FROM ' . self::USER_TABLE . ' 
+        WHERE ' . self::USERNAME . ' = "' . $this->username . '"' . ' 
+        AND ' . self::PASSWORD . ' = "' . $this->password . '"';
 
       return ($this->database->query($query)->fetch_object());
     }
@@ -130,17 +127,13 @@
           $initialUser = $this->emptyDatabase();
           $username = $this->database->real_escape_string($_POST[self::USERNAME]);
           $password = sha1($this->database->real_escape_string($_POST[self::PASSWORD]));
-          $query  = 'INSERT INTO ' . self::USER_TABLE . ' (' . self::USERNAME . ', ' . self::PASSWORD . ') '
-              . 'VALUES ("' . $username . '", "' . $password . '")';
+          $query  = '
+            INSERT INTO ' . self::USER_TABLE . ' (' . self::USERNAME . ', ' . self::PASSWORD . ') ' . '
+            VALUES ("' . $username . '", "' . $password . '")';
 
           if ($this->database->query($query)) {
             if ($initialUser) {
-              session_regenerate_id(true);
-              $_SESSION[self::SESSION_ID] = session_id();
-              $_SESSION[self::USERNAME] = $username;
-              $_SESSION[self::USERID] = $userId;
-              $_SESSION[self::IS_LOGGED_IN] = true;
-              $this->isLoggedIn = true;
+              $this->logInUser($username, $userId);
             }
 
             // avoid resending form on refresh
@@ -149,6 +142,15 @@
           };
         };
       }
+    }
+
+    private function logInUser($username, $userId) {
+      session_regenerate_id(true);
+      $_SESSION[self::SESSION_ID] = session_id();
+      $_SESSION[self::USERNAME] = $username;
+      $_SESSION[self::USERID] = $userId;
+      $_SESSION[self::IS_LOGGED_IN] = true;
+      $this->isLoggedIn = true;
     }
 
     public function emptyDatabase() {

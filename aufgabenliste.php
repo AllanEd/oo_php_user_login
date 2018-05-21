@@ -16,17 +16,17 @@
     <link rel="stylesheet" type="text/css" media="screen" href="./css/main.css" />
 </head>
 <body>
-  <header><span>Angemeldet als {{Login}} (<a href="./login.html"><span>logout</span></a>)</span></header>
+  <header><span>Angemeldet als <?php echo $_SESSION['username'] ?> (<a href="?logout"><span>logout</span></a>)</span></header>
   <h2>Aufgabenliste</h2>
   <ul id="todolist">
     <?php
-      $tasks = $taskStore->getTasks();
+      $tasks = $taskStore->getTaskStore();
 
       for ($i = 0; $i < count($tasks); $i++) {
         $taskId = $tasks[$i]->getId();
         $taskDone = $tasks[$i]->getDone();
         $taskDoneCssClass = '';
-        $taskText = $tasks[$i]->getText();
+        $taskText = htmlspecialchars_decode($tasks[$i]->getText());
 
         if ($taskDone == 1) {
           $taskDoneCssClass = 'checked';

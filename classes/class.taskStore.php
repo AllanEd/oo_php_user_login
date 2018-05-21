@@ -5,6 +5,7 @@
     const TASKS_STORE = 'ea3_todo';
     const TASK_ID = 'id';
     const OWNER = 'owner';
+    const DELETE = 'delete';
     const DONE = 'done';
     const TEXT = 'text';
 
@@ -12,18 +13,13 @@
     private $userId;
 
     public function __construct($database, $userId) {
-      $postText = isset($_POST['text']) ? $_POST['text'] : NULL;
-      $getDelete = isset($_GET['delete']) ? $_GET['delete'] : NULL;
-      $getDone = isset($_GET['done']) ? $_GET['done'] : NULL;
-      $getId = isset($_GET['id']) ? $_GET['id'] : NULL;
+      $postText = isset($_POST[self::TEXT]) ? $_POST[self::TEXT] : NULL;
+      $getDelete = isset($_GET[self::DELETE]) ? $_GET[self::DELETE] : NULL;
+      $getDone = isset($_GET[self::DONE]) ? $_GET[self::DONE] : NULL;
+      $getId = isset($_GET[self::TASK_ID]) ? $_GET[self::TASK_ID] : NULL;
 
       $this->database = $database;
       $this->userId = $userId;
-
-      /**
-       * initial tasks
-       */
-      $this->tasks = $this->getTasksStore();
 
       /**
        * conditions
@@ -48,8 +44,23 @@
       }
     }
 
-    public function getTasks() {
-      return $this->getTasksStore();
+    public function getTaskStore() {
+      $query = '
+        SELECT ' . self::TASK_ID . ', ' . self::OWNER . ', ' . self::DONE . ', ' . self::TEXT . ' 
+        FROM ' . self::TASKS_STORE . ' 
+        WHERE ' . self::OWNER . ' = "' . $this->userId . '"';
+
+      $result = $this->database->query($query);
+
+      $tasks = [];
+
+      while ($task = $result->fetch_object()) {
+        $currentTask = $this->createTask($task->id, $task->owner, $task->done, $task->text);
+
+        array_push($tasks, $currentTask);
+      }
+
+      return $tasks;
     }
     
     private function createTask($id, $owner, $done, $text) {
@@ -57,44 +68,28 @@
     }
 
     private function addTask($task) {
-      $query = 'INSERT INTO ' . self::TASKS_STORE .
-        ' (' . self::TASK_ID . ', ' . self::OWNER . ', ' . self::DONE . ', '  . self::TEXT . ') ' .
-        ' VALUES ("' . $task->getId() . '", "' . $task->getOwner() . '", "' . $task->getDone() . '", "' . $task->getText() . '")';
+      $query = '
+        INSERT INTO ' . self::TASKS_STORE . ' (' . self::TASK_ID . ', ' . self::OWNER . ', ' . self::DONE . ', '  . self::TEXT . ') ' . ' 
+        VALUES ("' . $task->getId() . '", "' . $task->getOwner() . '", "' . $task->getDone() . '", "' . $task->getText() . '")';
 
       $this->database->query($query);
     }
 
     private function deleteTask($taskId) {
-      $query = 'DELETE FROM ' . self::TASKS_STORE .
-        ' WHERE ' . self::TASK_ID . ' = ' . $taskId;
+      $query = '
+        DELETE FROM ' . self::TASKS_STORE . ' 
+        WHERE ' . self::TASK_ID . ' = ' . $taskId;
 
       $this->database->query($query);
     }
 
     private function updateTask($done, $taskId) {
-      $query = 'UPDATE ' . self::TASKS_STORE .
-        ' SET ' . self::DONE . ' = ' . $done .
-        ' WHERE ' . self::TASK_ID . ' = ' . $taskId;
+      $query = '
+        UPDATE ' . self::TASKS_STORE . ' 
+        SET ' . self::DONE . ' = ' . $done . ' 
+        WHERE ' . self::TASK_ID . ' = ' . $taskId;
 
       $this->database->query($query);
-    }
-
-    private function getTasksStore() {
-      $query = 'SELECT ' . self::TASK_ID . ', ' . self::OWNER . ', ' . self::DONE . ', ' . self::TEXT . 
-        ' FROM ' . self::TASKS_STORE . 
-        ' WHERE ' . self::OWNER . ' = "' . $this->userId . '"';
-
-      $result = $this->database->query($query);
-
-      $allTasks = [];
-
-      while ($task = $result->fetch_object()) {
-        $newTask = $this->createTask($task->id, $task->owner, $task->done, $task->text);
-
-        array_push($allTasks, $newTask);
-      }
-
-      return $allTasks;
     }
   }
 
