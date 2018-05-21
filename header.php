@@ -11,7 +11,6 @@
   }
   
   $user = new User($database);
-  echo '<pre>' . print_r($_SESSION, TRUE) . '</pre>';
 
   $userIsNotLoggedIn = !$user->isLoggedIn();
 
