@@ -1,5 +1,5 @@
 <?php
-
+  //TODO: Check if User exists
   class User {
     const USER_TABLE = 'ea3_user';
     const LOGIN = 'login';
@@ -22,39 +22,43 @@
 
       $this->database = $database;
 
-      $isCookieSet = isset($_COOKIE[self::USERNAME]);
-      $hasUsername = !empty($_SESSION[self::USERNAME]);
-      $isLoggedIn = isset($_SESSION[self::IS_LOGGED_IN]);
+      $this->handleHttpRequest();
 
-      $loginUser = isset($_POST[self::LOGIN]);
-      $logoutUser = isset($_GET[self::LOGOUT]);
-      $registerUser = isset($_POST[self::REGISTER]);
-
-      $databaseIsEmpty = $this->emptyDatabase();
-
-      if ($loginUser) {
-        $this->login();
-      
-      } elseif ($logoutUser) {
-        $this->logout();
-      
-      } elseif ($registerUser) {
-        $this->register();
-
-      } elseif ($isCookieSet || ($hasUsername && $isLoggedIn))  {
-        $this->isLoggedIn = true;
-        $this->username = $_SESSION[self::USERNAME];
-
-      } elseif ($databaseIsEmpty && $registerUser) {
-        $this->register();
-      };
+      $this->logInUserIfStoredInSession();
 
       return $this;
+    }
+
+    private function handleHttpRequest() {
+      $postLogin = isset($_POST[self::LOGIN]);
+      $getLogout = isset($_GET[self::LOGOUT]);
+      $postRegister = isset($_POST[self::REGISTER]);
+
+      if ($postLogin) {
+        $this->login();
+      
+      } elseif ($getLogout) {
+        $this->logout();
+      
+      } elseif ($postRegister) {
+        $this->register();
+      }
+    }
+
+    private function logInUserIfStoredInSession() {
+      $isUsernameInSession = !empty($_SESSION[self::USERNAME]);
+      $isUserLoggedIn = isset($_SESSION[self::IS_LOGGED_IN]);
+
+      if ($isUsernameInSession && $isUserLoggedIn)  {
+        $this->isLoggedIn = true;
+        $this->username = $_SESSION[self::USERNAME];
+      }
     }
 
     public function getUsername() {
       return $this->username;
     }
+
     public function getUserId() {
       return $this->userId;
     }
@@ -68,21 +72,21 @@
     }
 
     public function login() {
-      $usernameGiven = !empty($_POST[self::USERNAME]);
-      $passwordGiven = !empty($_POST[self::PASSWORD]);
+      $postUsername = $_POST[self::USERNAME];
+      $postPassword = $_POST[self::PASSWORD];
+      $postUsernameGiven = !empty($postUsername);
+      $postPasswordGiven = !empty($postPassword);
 
-      if ($usernameGiven && $passwordGiven) {
-        $this->username = $this->database->real_escape_string($_POST[self::USERNAME]);
-        $this->password = sha1($this->database->real_escape_string($_POST[self::PASSWORD]));
+      if ($postUsernameGiven && $postPasswordGiven) {
+        $this->username = $this->escapeString($postUsername);
+        $this->password = $this->createSha1Hash($postPassword);
 
         if ($row = $this->verifyPassword()) {
           $this->userId = $this->getUserIdFromDatabase();
 
           $this->logInUser($this->username, $this->userId);
 
-          // avoid resending form on refresh
-          header('Location: ' . $_SERVER['REQUEST_URI']);
-          exit();
+          $this->redirectToRequestUri();
         };
       };
     }
@@ -111,37 +115,43 @@
       session_destroy();
 
       $this->isLoggedIn = false;
-      setcookie(self::USERNAME, '', time()-3600);
       
       header('Location: index.php');
       exit();
     }
 
     public function register() {
-      $usernameGiven = !empty($_POST[self::USERNAME]);
-      $passwordGiven = !empty($_POST[self::PASSWORD]);
-      $confirmationGiven = !empty($_POST[self::PASSWORD]);
+      $postUsername = $_POST[self::USERNAME];
+      $postPassword = $_POST[self::PASSWORD];
+      $postConfirm = $_POST[self::CONFIRM];
 
-      if ($usernameGiven && $passwordGiven && $confirmationGiven) {
-        if ($_POST[self::PASSWORD] === $_POST[self::PASSWORD]) {
-          $initialUser = $this->emptyDatabase();
-          $username = $this->database->real_escape_string($_POST[self::USERNAME]);
-          $password = sha1($this->database->real_escape_string($_POST[self::PASSWORD]));
-          $query  = '
-            INSERT INTO ' . self::USER_TABLE . ' (' . self::USERNAME . ', ' . self::PASSWORD . ') ' . '
-            VALUES ("' . $username . '", "' . $password . '")';
+      $allPostDataGiven = !empty($postUsername) && !empty($postPassword) && !empty($postConfirm);
 
-          if ($this->database->query($query)) {
-            if ($initialUser) {
-              $this->logInUser($username, $userId);
-            }
+      $passwordEqualsConfirmation = $postPassword === $postConfirm;
 
-            // avoid resending form on refresh
-            header('Location: ' . $_SERVER['REQUEST_URI']);
-            exit();
-          };
+      if ($allPostDataGiven && $passwordEqualsConfirmation) {
+        $isInitialUser = $this->isDatabaseEmpty();
+
+        $isCreateUserSuccessful = $this->createUser($postUsername, $postPassword);
+
+        if ($isCreateUserSuccessful) {
+          if ($isInitialUser) {
+            $this->logInUser($username, $userId);
+          }
+
+          $this->redirectToRequestUri();
         };
       }
+    }
+
+    private function createUser($username, $password) {
+      $username = $this->escapeString($username);
+      $password = $this->createSha1Hash($password);
+      $query  = '
+        INSERT INTO ' . self::USER_TABLE . ' (' . self::USERNAME . ', ' . self::PASSWORD . ') ' . '
+        VALUES ("' . $username . '", "' . $password . '")';
+
+      return $this->database->query($query);
     }
 
     private function logInUser($username, $userId) {
@@ -153,13 +163,25 @@
       $this->isLoggedIn = true;
     }
 
-    public function emptyDatabase() {
+    public function isDatabaseEmpty() {
       $query = 'SELECT * FROM ' . self::USER_TABLE;
       $result = $this->database->query($query);
 
       return ($result->num_rows === 0);
     }
 
+    private function escapeString($string) {
+      return $this->database->real_escape_string($string);
+    }
+
+    private function createSha1Hash($string) {
+      return sha1($this->escapeString($string));
+    }
+
+    private function redirectToRequestUri() {
+      header('Location: ' . $_SERVER['REQUEST_URI']);
+      exit();
+    }
   }
 
 ?>
