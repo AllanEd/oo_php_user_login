@@ -84,7 +84,7 @@
         if ($row = $this->verifyPassword()) {
           $this->userId = $this->getUserIdFromDatabase();
 
-          $this->logInUser($this->username, $this->userId);
+          $this->setLoggedInUser($this->username, $this->userId);
 
           $this->redirectToRequestUri();
         };
@@ -111,13 +111,9 @@
     }
 
     public function logout() {
-      session_unset();
-      session_destroy();
-
-      $this->isLoggedIn = false;
+      $this->removeLoggedInUser();
       
-      header('Location: index.php');
-      exit();
+      $this->redirectToIndex();
     }
 
     public function register() {
@@ -136,7 +132,7 @@
 
         if ($isCreateUserSuccessful) {
           if ($isInitialUser) {
-            $this->logInUser($username, $userId);
+            $this->setLoggedInUser($username, $userId);
           }
 
           $this->redirectToRequestUri();
@@ -151,16 +147,31 @@
         INSERT INTO ' . self::USER_TABLE . ' (' . self::USERNAME . ', ' . self::PASSWORD . ') ' . '
         VALUES ("' . $username . '", "' . $password . '")';
 
-      return $this->database->query($query);
+      $isInsertSuccesful = $this->database->query($query);
+
+      return $isInsertSuccesful;
     }
 
-    private function logInUser($username, $userId) {
+    private function setLoggedInUser($username, $userId) {
       session_regenerate_id(true);
+
+      $this->setSessionValues($username, $userId);
+
+      $this->isLoggedIn = true;
+    }
+
+    private function removeLoggedInUser() {
+      session_unset();
+      session_destroy();
+
+      $this->isLoggedIn = false;
+    }
+
+    private function setSessionValues($username, $userId) {
       $_SESSION[self::SESSION_ID] = session_id();
       $_SESSION[self::USERNAME] = $username;
       $_SESSION[self::USERID] = $userId;
       $_SESSION[self::IS_LOGGED_IN] = true;
-      $this->isLoggedIn = true;
     }
 
     public function isDatabaseEmpty() {
@@ -180,6 +191,11 @@
 
     private function redirectToRequestUri() {
       header('Location: ' . $_SERVER['REQUEST_URI']);
+      exit();
+    }
+
+    private function redirectToIndex() {
+      header('Location: index.php');
       exit();
     }
   }
