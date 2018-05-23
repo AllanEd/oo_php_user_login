@@ -2,7 +2,7 @@
   require_once('classes/class.task.php');
 
   class TaskStore {
-    const TASKS_STORE = 'ea3_todo';
+    const TASKS_STORE = 'EA3_TODO';
     const TASK_ID = 'id';
     const OWNER = 'owner';
     const DELETE = 'delete';

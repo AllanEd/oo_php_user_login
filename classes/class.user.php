@@ -1,13 +1,13 @@
 <?php
   //TODO: Check if User exists
   class User {
-    const USER_TABLE = 'ea3_user';
+    const USER_TABLE = 'EA3_USER';
     const LOGIN = 'login';
     const LOGOUT = 'logout';
     const USERNAME = 'username';
-    const USERID = 'userId';
+    const USERID = 'id';
     const PASSWORD = 'password';
-    const CONFIRM = 'confirm';
+    const CONFIRMATION = 'confirmation';
     const IS_LOGGED_IN = 'isLoggedIn';
     const REGISTER = 'register';
     const SESSION_ID = 'sessionId';
@@ -35,13 +35,40 @@
       $postRegister = isset($_POST[self::REGISTER]);
 
       if ($postLogin) {
-        $this->login();
-      
+        $this->handlePostLogin();      
       } elseif ($getLogout) {
         $this->logout();
       
       } elseif ($postRegister) {
-        $this->register();
+        $this->handlePostRegister();
+      }
+    }
+
+    private function handlePostLogin() {
+      $isPostUsernameSet = !empty($_POST[self::USERNAME]);
+      $isPostPasswordSet = !empty($_POST[self::PASSWORD]);
+
+      if ($isPostUsernameSet && $isPostPasswordSet) {
+        $postUsername = $_POST[self::USERNAME];
+        $postPassword = $_POST[self::PASSWORD];
+
+        $this->login($postUsername, $postPassword);
+      }
+    }
+
+    private function handlePostRegister() {
+      $isPostUsernameSet = !empty($_POST[self::USERNAME]);
+      $isPostPasswordSet = !empty($_POST[self::PASSWORD]);
+      $isPostConfirmationSet = !empty($_POST[self::CONFIRMATION]);
+
+      $allPostDataGiven = $isPostUsernameSet && $isPostPasswordSet && $isPostConfirmationSet;
+
+      if ($allPostDataGiven) {
+        $postUsername = $_POST[self::USERNAME];
+        $postPassword = $_POST[self::PASSWORD];
+        $postConfirmation = $_POST[self::CONFIRMATION];
+
+        $this->register($postUsername, $postPassword, $postConfirmation);
       }
     }
 
@@ -71,22 +98,20 @@
       }
     }
 
-    public function login() {
-      $postUsername = $_POST[self::USERNAME];
-      $postPassword = $_POST[self::PASSWORD];
-      $postUsernameGiven = !empty($postUsername);
-      $postPasswordGiven = !empty($postPassword);
+    public function login($username, $password) {
+      $isUsernameSet = !empty($username);
+      $isPasswordSet = !empty($password);
 
-      if ($postUsernameGiven && $postPasswordGiven) {
-        $this->username = $this->escapeString($postUsername);
-        $this->password = $this->createSha1Hash($postPassword);
+      if ($isUsernameSet && $isPasswordSet) {
+        $this->username = $this->escapeString($username);
+        $this->password = $this->createSha1Hash($password);
 
         if ($row = $this->verifyPassword()) {
           $this->userId = $this->getUserIdFromDatabase();
 
-          $this->setLoggedInUser($this->username, $this->userId);
+          $this->setUserLoggedIn($this->username, $this->userId);
 
-          $this->redirectToRequestUri();
+          $this->redirectTo($_SERVER['REQUEST_URI']);
         };
       };
     }
@@ -97,7 +122,7 @@
         WHERE ' . self::USERNAME . ' = "' . $this->username . '"' . ' 
         AND ' . self::PASSWORD . ' = "' . $this->password . '"';
 
-      return ($this->database->query($query)->fetch_object()->userId);
+      return ($this->database->query($query)->fetch_object()->id);
     }
 
     private function verifyPassword() {
@@ -113,29 +138,16 @@
     public function logout() {
       $this->removeLoggedInUser();
       
-      $this->redirectToIndex();
+      $this->redirectTo('index.php');
     }
 
-    public function register() {
-      $postUsername = $_POST[self::USERNAME];
-      $postPassword = $_POST[self::PASSWORD];
-      $postConfirm = $_POST[self::CONFIRM];
-
-      $allPostDataGiven = !empty($postUsername) && !empty($postPassword) && !empty($postConfirm);
-
-      $passwordEqualsConfirmation = $postPassword === $postConfirm;
-
-      if ($allPostDataGiven && $passwordEqualsConfirmation) {
-        $isInitialUser = $this->isDatabaseEmpty();
-
-        $isCreateUserSuccessful = $this->createUser($postUsername, $postPassword);
+    public function register($username, $password, $confirmation) {
+      if ($password === $confirmation) {
+        $isCreateUserSuccessful = $this->createUser($username, $password);
 
         if ($isCreateUserSuccessful) {
-          if ($isInitialUser) {
-            $this->setLoggedInUser($username, $userId);
-          }
-
-          $this->redirectToRequestUri();
+          $this->login($username, $password);
+          $this->redirectTo('aufgabenliste.php');
         };
       }
     }
@@ -152,7 +164,7 @@
       return $isInsertSuccesful;
     }
 
-    private function setLoggedInUser($username, $userId) {
+    private function setUserLoggedIn($username, $userId) {
       session_regenerate_id(true);
 
       $this->setSessionValues($username, $userId);
@@ -174,13 +186,6 @@
       $_SESSION[self::IS_LOGGED_IN] = true;
     }
 
-    public function isDatabaseEmpty() {
-      $query = 'SELECT * FROM ' . self::USER_TABLE;
-      $result = $this->database->query($query);
-
-      return ($result->num_rows === 0);
-    }
-
     private function escapeString($string) {
       return $this->database->real_escape_string($string);
     }
@@ -189,13 +194,8 @@
       return sha1($this->escapeString($string));
     }
 
-    private function redirectToRequestUri() {
-      header('Location: ' . $_SERVER['REQUEST_URI']);
-      exit();
-    }
-
-    private function redirectToIndex() {
-      header('Location: index.php');
+    private function redirectTo($uri) {
+      header('Location: ' . $uri);
       exit();
     }
   }

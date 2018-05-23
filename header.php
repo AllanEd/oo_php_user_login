@@ -15,9 +15,7 @@
   $userIsNotLoggedIn = !$user->isLoggedIn();
 
   if ($userIsNotLoggedIn) {
-    if ($user->isDatabaseEmpty()) {
-      include('registrieren.php');
-    } elseif (isset($_GET['registrieren'])) {
+    if (isset($_GET['registrieren'])) {
       include('registrieren.php');
     } else {
       include('login.php');

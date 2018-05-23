@@ -15,7 +15,7 @@
   <form id="register-form" action="<?php echo $_SERVER['PHP_SELF']; ?>" method="POST">
     <input type="text" placeholder="Benutzername" name="username">
     <input type="password" placeholder="Passwort" name="password">
-    <input type="password" placeholder="Passwort wiederholen" name="confirm">
+    <input type="password" placeholder="Passwort wiederholen" name="confirmation">
     <input type="submit" value="registieren" name="register">
   </form>
 </div>

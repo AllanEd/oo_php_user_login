@@ -4,7 +4,7 @@
 
   require_once('classes/class.taskStore.php');
 
-  $taskStore = new TaskStore($database, $_SESSION['userId']);
+  $taskStore = new TaskStore($database, $_SESSION['id']);
 ?>
 <!DOCTYPE html>
 <html>
