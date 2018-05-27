@@ -6,16 +6,6 @@
 
   $taskStore = new TaskStore($database, $_SESSION['id']);
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>ISP - Gerüst der Einsendeaufgabe 3</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" type="text/css" media="screen" href="./css/main.css" />
-</head>
-<body>
   <header><span>Angemeldet als <?php echo $_SESSION['username'] ?> (<a href="?logout"><span>logout</span></a>)</span></header>
   <h2>Aufgabenliste</h2>
   <ul id="todolist">

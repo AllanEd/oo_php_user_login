@@ -141,3 +141,11 @@ div.spacer {
 #add-todo input[type=submit] {
     background-color: greenyellow;
 }
+.alert {
+    padding: 20px;
+    background-color: #f44336;
+    color: white;
+    opacity: 0.83;
+    transition: opacity 0.6s;
+    margin-bottom: 15px;
+}

@@ -18,6 +18,7 @@
     private $username;
     private $userId;
     private $isLoggedIn;
+    private $errors = array();
 
     public function __construct(mysqli $database) {
       session_start();
@@ -59,19 +60,36 @@
     }
 
     private function handlePostRegister() {
-      $isPostUsernameSet = !empty($_POST[self::USERNAME]);
-      $isPostPasswordSet = !empty($_POST[self::PASSWORD]);
-      $isPostConfirmationSet = !empty($_POST[self::CONFIRMATION]);
+      $postData = [
+        $_POST[self::USERNAME],
+        $_POST[self::PASSWORD],
+        $_POST[self::CONFIRMATION]
+      ];
 
-      $allPostDataGiven = $isPostUsernameSet && $isPostPasswordSet && $isPostConfirmationSet;
+      $isAllDataGiven = $this->isAllDataGiven($postData); 
 
-      if ($allPostDataGiven) {
+      if ($isAllDataGiven) {
         $postUsername = $_POST[self::USERNAME];
         $postPassword = $_POST[self::PASSWORD];
         $postConfirmation = $_POST[self::CONFIRMATION];
 
         $this->register($postUsername, $postPassword, $postConfirmation);
       }
+    }
+
+    private function isAllDataGiven(array $data): bool {
+      $allDataGiven = true;
+
+      foreach ($data as &$value) {
+        if (empty($value)) {
+          $this->errors[] =
+            'Sie haben nicht alle Daten eingegeben.';
+          $allDataGiven = false;
+          break;
+        }
+      }
+
+      return $allDataGiven;
     }
 
     private function logInUserIfStoredInSession() {
@@ -98,6 +116,22 @@
       } else {
         return $this->isLoggedIn;
       }
+    }
+
+    public function hasErrors(): bool {
+      return count($this->errors) > 0 ? true : false;
+    }
+
+    public function getErrorsAsElement(): String {
+      $html = '<div class="alert">';
+
+      foreach ($this->errors as &$error) {
+        $html .= $error . '<br>';
+      }
+
+      $html .= '</div>';
+
+      return $html;
     }
 
     public function login(string $username, string $password) {
@@ -139,24 +173,68 @@
       $doesPasswordAndUserMatch =
         $this->database->query($query)->num_rows > 0;
 
+      if ($doesPasswordAndUserMatch === false) {
+        $this->errors[] =
+          'Passwort oder Benutzername ist falsch.';
+      }
+
       return $doesPasswordAndUserMatch;
     }
 
     public function logout() {
       $this->removeLoggedInUser();
-      
+
       $this->redirectTo('index.php');
     }
 
     public function register(string $username, string $password, string $confirmation) {
-      if ($password === $confirmation) {
+
+      $doesUsernameExists = $this->doesUsernameExists($username);
+
+      $doesPasswordAndConfirmationMatch = 
+        $this->doesPasswordAndConfirmationMatch(
+          $password,
+          $confirmation
+        );
+
+      if ($doesPasswordAndConfirmationMatch && $doesUsernameExists === false) {
         $isCreateUserSuccessful = $this->createUser($username, $password);
 
         if ($isCreateUserSuccessful) {
           $this->login($username, $password);
+
           $this->redirectTo('aufgabenliste.php');
         };
       }
+    }
+
+    private function doesPasswordAndConfirmationMatch(string $password, string $username): bool {
+      
+      $doesMatch = $password === $username ? true : false;
+
+      if ($doesMatch === false) {
+        $this->errors[] =
+          'Passwörter stimmen nicht überein.';
+      }
+
+      return $doesMatch;
+    }
+
+    private function doesUsernameExists(string $username): bool {
+      $query  = '
+        SELECT * 
+        FROM ' . self::USER_TABLE . ' 
+        WHERE ' . self::USERNAME . ' = "' . $username . '"';
+
+      $doesUsernameExists =
+        $this->database->query($query)->num_rows > 0;
+
+      if ($doesUsernameExists) {
+        $this->errors[] =
+          'Der eingegebene Benutzername existiert bereits.';
+      }
+
+      return $doesUsernameExists;
     }
 
     private function createUser(string $username, string $password): bool {
