@@ -1,4 +1,6 @@
 <?php
+  declare(strict_types=1);
+
   //TODO: Check if User exists
   class User {
     const USER_TABLE = 'EA3_USER';
@@ -17,7 +19,7 @@
     private $userId;
     private $isLoggedIn;
 
-    public function __construct($database) {
+    public function __construct(mysqli $database) {
       session_start();
 
       $this->database = $database;
@@ -77,28 +79,28 @@
       $isUserLoggedIn = isset($_SESSION[self::IS_LOGGED_IN]);
 
       if ($isUsernameInSession && $isUserLoggedIn)  {
-        $this->isLoggedIn = true;
+        $this->isLoggedIn = 1;
         $this->username = $_SESSION[self::USERNAME];
       }
     }
 
-    public function getUsername() {
+    public function getUsername(): string {
       return $this->username;
     }
 
-    public function getUserId() {
+    public function getUserId(): int {
       return $this->userId;
     }
 
-    public function isLoggedIn() {
+    public function isLoggedIn(): int {
       if ($this->isLoggedIn === NULL) {
-        return false;
+        return 0;
       } else {
         return $this->isLoggedIn;
       }
     }
 
-    public function login($username, $password) {
+    public function login(string $username, string $password) {
       $isUsernameSet = !empty($username);
       $isPasswordSet = !empty($password);
 
@@ -106,7 +108,7 @@
         $this->username = $this->escapeString($username);
         $this->password = $this->createSha1Hash($password);
 
-        if ($row = $this->verifyPassword()) {
+        if ($this->doesPasswordAndUserMatch()) {
           $this->userId = $this->getUserIdFromDatabase();
 
           $this->setUserLoggedIn($this->username, $this->userId);
@@ -116,23 +118,28 @@
       };
     }
 
-    private function getUserIdFromDatabase() {
+    private function getUserIdFromDatabase(): int {
       $query  = '
         SELECT ' . self::USERID . ' FROM ' . self::USER_TABLE . ' 
         WHERE ' . self::USERNAME . ' = "' . $this->username . '"' . ' 
         AND ' . self::PASSWORD . ' = "' . $this->password . '"';
 
-      return ($this->database->query($query)->fetch_object()->id);
+      $userId = (int) $this->database->query($query)->fetch_object()->id;
+
+      return $userId;
     }
 
-    private function verifyPassword() {
+    private function doesPasswordAndUserMatch(): bool {
       $query  = '
         SELECT * 
         FROM ' . self::USER_TABLE . ' 
         WHERE ' . self::USERNAME . ' = "' . $this->username . '"' . ' 
         AND ' . self::PASSWORD . ' = "' . $this->password . '"';
 
-      return ($this->database->query($query)->fetch_object());
+      $doesPasswordAndUserMatch =
+        $this->database->query($query)->num_rows > 0;
+
+      return $doesPasswordAndUserMatch;
     }
 
     public function logout() {
@@ -141,7 +148,7 @@
       $this->redirectTo('index.php');
     }
 
-    public function register($username, $password, $confirmation) {
+    public function register(string $username, string $password, string $confirmation) {
       if ($password === $confirmation) {
         $isCreateUserSuccessful = $this->createUser($username, $password);
 
@@ -152,7 +159,7 @@
       }
     }
 
-    private function createUser($username, $password) {
+    private function createUser(string $username, string $password): bool {
       $username = $this->escapeString($username);
       $password = $this->createSha1Hash($password);
       $query  = '
@@ -164,40 +171,38 @@
       return $isInsertSuccesful;
     }
 
-    private function setUserLoggedIn($username, $userId) {
+    private function setUserLoggedIn(string $username, int $userId) {
       session_regenerate_id(true);
 
       $this->setSessionValues($username, $userId);
 
-      $this->isLoggedIn = true;
+      $this->isLoggedIn = 1;
     }
 
     private function removeLoggedInUser() {
       session_unset();
       session_destroy();
 
-      $this->isLoggedIn = false;
+      $this->isLoggedIn = 0;
     }
 
-    private function setSessionValues($username, $userId) {
+    private function setSessionValues(string $username, int $userId) {
       $_SESSION[self::SESSION_ID] = session_id();
       $_SESSION[self::USERNAME] = $username;
       $_SESSION[self::USERID] = $userId;
       $_SESSION[self::IS_LOGGED_IN] = true;
     }
 
-    private function escapeString($string) {
+    private function escapeString(string $string): string {
       return $this->database->real_escape_string($string);
     }
 
-    private function createSha1Hash($string) {
+    private function createSha1Hash(string $string): string {
       return sha1($this->escapeString($string));
     }
 
-    private function redirectTo($uri) {
+    private function redirectTo(string $uri) {
       header('Location: ' . $uri);
       exit();
     }
   }
-
-?>

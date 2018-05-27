@@ -1,4 +1,5 @@
 <?php
+  declare(strict_types=1);
 
   class Task {
     const MAX_INPUT_LENGTH = 500;
@@ -8,7 +9,7 @@
     private $done;
     private $text;
 
-    public function __construct($id, $owner, $done, $text) {
+    public function __construct(?int $id, int $owner, int $done, string $text) {
       $this->id = $id;
       $this->owner = $owner;
       $this->done = $done;
@@ -16,7 +17,7 @@
     }
 
     //validates a given input
-    private function validateInput($input) {
+    private function validateInput(string $input): string {
       $input = trim($input);
       $input = stripslashes($input);
       $input = htmlspecialchars($input);
@@ -28,21 +29,19 @@
       return $input;
     }
 
-    public function getId() {
+    public function getId(): int {
       return $this->id;
     }
 
-    public function getOwner() {
+    public function getOwner(): int {
       return $this->owner;
     }
 
-    public function getDone() {
+    public function getDone(): int {
       return $this->done;
     }
 
-    public function getText() {
+    public function getText(): string {
       return $this->text;
     }
   }
-
-?>
