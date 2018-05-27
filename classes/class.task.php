@@ -9,7 +9,7 @@
     private $done;
     private $text;
 
-    public function __construct(?int $id, int $owner, int $done, string $text) {
+    public function __construct(int $id = null, int $owner, int $done, string $text) {
       $this->id = $id;
       $this->owner = $owner;
       $this->done = $done;

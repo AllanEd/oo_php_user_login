@@ -58,7 +58,7 @@
       return $tasks;
     }
     
-    private function createTask(?int $id, int $owner, int $done, string $text): Task {
+    private function createTask(int $id = null, int $owner, int $done, string $text): Task {
       return new Task($id, $owner, $done, $text);
     }
 
