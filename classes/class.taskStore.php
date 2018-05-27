@@ -15,34 +15,22 @@
     private $userId;
 
     public function __construct(mysqli $database, int $userId) {
-      $postText = isset($_POST[self::TEXT]) ? $_POST[self::TEXT] : NULL;
-      $getDelete = isset($_GET[self::DELETE]) ? (int) $_GET[self::DELETE] : NULL;
-      $getDone = isset($_GET[self::DONE]) ? (int) $_GET[self::DONE] : NULL;
-      $getId = isset($_GET[self::TASK_ID]) ? (int) $_GET[self::TASK_ID] : NULL;
-
       $this->database = $database;
-      $this->userId = (int) $userId;
+      $this->userId = $userId;
 
-      /**
-       * conditions
-       */
-      $isPostMethod = $_SERVER['REQUEST_METHOD'] === 'POST';
-      $isGetMethod = $_SERVER['REQUEST_METHOD'] === 'GET';
-      $isPostText = $isPostMethod && isset($postText) && !empty($postText);
-      $isGetDelete = $isGetMethod && isset($getDelete);
-      $isGetDone = $isGetMethod && isset($getDone);
-      $isGetId = $isGetMethod && isset($getId);
-
-      if ($isPostText) {
-        $newTask = $this->createTask(null, $this->userId, 0, $postText);
-
-        $this->addTask($newTask);
-
-      } elseif ($isGetDelete) {
-        $this->deleteTask($getDelete);
+      $taskText = isset($_POST[self::TEXT]) ? $_POST[self::TEXT] : NULL;
+      $taskDeleteId = isset($_GET[self::DELETE]) ? (int) $_GET[self::DELETE] : NULL;
+      $taskDone = isset($_GET[self::DONE]) ? (int) $_GET[self::DONE] : NULL;
+      $taskDoneId = isset($_GET[self::TASK_ID]) ? (int) $_GET[self::TASK_ID] : NULL;
       
-      } elseif ($isGetDone && $isGetId) {
-        $this->updateTask($getDone, $getId);
+      if (isset($taskText)) {
+        $this->addTask($taskText);
+
+      } elseif (isset($taskDeleteId)) {
+        $this->deleteTask($taskDeleteId);
+      
+      } elseif (isset($taskDone) && isset($taskDoneId)) {
+        $this->updateTask($taskDone, $taskDoneId);
       }
     }
 
@@ -74,10 +62,12 @@
       return new Task($id, $owner, $done, $text);
     }
 
-    private function addTask(Task $task) {
+    private function addTask(string $text) {
+      $newTask = $this->createTask(null, $this->userId, 0, $text);
+
       $query = '
         INSERT INTO ' . self::TASK_STORE_TABLE . ' (' . self::OWNER . ', ' . self::DONE . ', '  . self::TEXT . ') ' . ' 
-        VALUES ("' . $task->getOwner() . '", "' . $task->getDone() . '", "' . $task->getText() . '")';
+        VALUES ("' . $newTask->getOwner() . '", "' . $newTask->getDone() . '", "' . $newTask->getText() . '")';
 
       $this->database->query($query);
     }
